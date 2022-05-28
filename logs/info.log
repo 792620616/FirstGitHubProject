@@ -1,0 +1,22 @@
+[2022-05-29 00:17:01.609] org.springframework.boot.logging.DeferredLog 225 logTo - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+[2022-05-29 00:17:02.135] org.springframework.boot.SpringApplication 651 logStartupProfileInfo - No active profile set, falling back to default profiles: default
+[2022-05-29 00:17:02.719] org.springframework.cloud.context.scope.GenericScope 295 setSerializationId - BeanFactory id=72cba9dd-f09c-3943-8233-92ecc1a4bea4
+[2022-05-29 00:17:03.071] org.springframework.boot.web.embedded.tomcat.TomcatWebServer 108 initialize - Tomcat initialized with port(s): 8080 (http)
+[2022-05-29 00:17:03.078] org.apache.juli.logging.DirectJDKLog 173 log - Initializing ProtocolHandler ["http-nio-8080"]
+[2022-05-29 00:17:03.088] org.apache.juli.logging.DirectJDKLog 173 log - Starting service [Tomcat]
+[2022-05-29 00:17:03.088] org.apache.juli.logging.DirectJDKLog 173 log - Starting Servlet engine: [Apache Tomcat/9.0.38]
+[2022-05-29 00:17:03.156] org.apache.juli.logging.DirectJDKLog 173 log - Initializing Spring embedded WebApplicationContext
+[2022-05-29 00:17:03.157] org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext 285 prepareWebApplicationContext - Root WebApplicationContext: initialization completed in 1010 ms
+[2022-05-29 00:17:03.288] org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer 58 startServer - LiveReload server is running on port 35729
+[2022-05-29 00:17:03.543] com.netflix.config.sources.URLConfigurationSource 122 <init> - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[2022-05-29 00:17:03.546] com.netflix.config.sources.URLConfigurationSource 122 <init> - To enable URLs as dynamic configuration sources, define System property archaius.configurationSource.additionalUrls or make config.properties available on classpath.
+[2022-05-29 00:17:03.617] org.springframework.scheduling.concurrent.ExecutorConfigurationSupport 181 initialize - Initializing ExecutorService 'applicationTaskExecutor'
+[2022-05-29 00:17:03.638] org.springframework.boot.autoconfigure.web.servlet.WelcomePageHandlerMapping 58 <init> - Adding welcome page template: index
+[2022-05-29 00:17:03.992] org.apache.juli.logging.DirectJDKLog 173 log - Starting ProtocolHandler ["http-nio-8080"]
+[2022-05-29 00:17:04.007] org.springframework.boot.web.embedded.tomcat.TomcatWebServer 220 start - Tomcat started on port(s): 8080 (http) with context path ''
+[2022-05-29 00:17:04.317] org.springframework.boot.StartupInfoLogger 61 logStarted - Started FirstApplication in 3.3 seconds (JVM running for 4.317)
+[2022-05-29 00:17:09.339] org.apache.juli.logging.DirectJDKLog 173 log - Initializing Spring DispatcherServlet 'dispatcherServlet'
+[2022-05-29 00:17:09.339] org.springframework.web.servlet.FrameworkServlet 525 initServletBean - Initializing Servlet 'dispatcherServlet'
+[2022-05-29 00:17:09.346] org.springframework.web.servlet.FrameworkServlet 547 initServletBean - Completed initialization in 7 ms
+[2022-05-29 00:17:11.412] com.example.first.controller.XingLangController 47 timeOut - 2121
+[2022-05-29 00:17:11.412] com.example.first.controller.XingLangController 48 timeOut - 44444
