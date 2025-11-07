@@ -1,6 +1,7 @@
 # MCP
 ## MCP-Server
 ### 如何查看其运行逻辑
+***
 public class ClientSse {
     static ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(req -> {
@@ -53,6 +54,5 @@ public class ClientSse {
         sampleClient.run();
         System.out.println("WebClient with request/response logging created successfully!");
     }
-
-
 }
+***
