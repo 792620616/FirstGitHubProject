@@ -1,0 +1,36 @@
+package com.xiao.mcpclient.controller;
+
+import com.xiao.mcpclient.entity.ActorFilmList;
+import io.modelcontextprotocol.client.McpSyncClient;
+import io.modelcontextprotocol.spec.McpSchema;
+import jakarta.annotation.Resource;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.stringtemplate.v4.ST;
+
+import java.util.List;
+
+
+@RestController
+public class HelloController {
+
+    @Resource
+    private ChatClient myChatClient;
+
+    @GetMapping("/")
+    public String hello() {
+        String strPrompt = new ST("你是谁!").render();
+        String content = myChatClient.prompt(strPrompt).call().content();
+        return content;
+    }
+
+    @GetMapping("/hello1")
+    public Object hello1() {
+        String strPrompt = new ST("生成成龙的电影!,返回结果使用中文").render();
+        ActorFilmList entity = myChatClient.prompt().user(strPrompt).call().entity(ActorFilmList.class);
+        return entity;
+    }
+
+
+}
