@@ -1,0 +1,163 @@
+package com.xiao.mcpservice;
+
+import io.modelcontextprotocol.client.transport.WebFluxSseClientTransport;
+import org.springframework.core.io.buffer.*;
+import org.springframework.web.reactive.function.BodyInserters;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+import io.netty.handler.logging.LogLevel;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.*;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.reactive.function.BodyExtractors;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.nio.charset.StandardCharsets;
+import org.springframework.core.io.buffer.*;
+import org.springframework.http.client.reactive.*;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
+import org.springframework.http.HttpMethod;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
+
+
+public class ClientSse {
+
+    // 响应日志（状态码、头）+ 缓存并重放响应体，避免被消费后下游拿不到。
+    private static final DataBufferFactory BUFFER_FACTORY = new DefaultDataBufferFactory();
+    private static final int MAX_LOG_SIZE = 10000; // 限制日志大小
+
+    static ClientHttpConnector createLoggingConnector(ClientHttpConnector delegate) {
+        return new ClientHttpConnector() {
+            @Override
+            public Mono<ClientHttpResponse> connect(HttpMethod method, URI uri,
+                                                    Function<? super ClientHttpRequest, Mono<Void>> requestCallback) {
+                System.out.println("[REQ] " + method + " " + uri);
+
+                return delegate.connect(method, uri, request -> {
+                    ClientHttpRequest wrappedRequest = new ClientHttpRequestDecorator(request) {
+                        @Override
+                        public Mono<Void> writeWith(org.reactivestreams.Publisher<? extends DataBuffer> body) {
+                            return Flux.from(body)
+                                    .collectList()
+                                    .flatMap(buffers -> {
+                                        if (buffers.isEmpty()) {
+                                            System.out.println("[REQ-BODY] <empty>");
+                                            return super.writeWith(Flux.empty());
+                                        }
+
+                                        // 计算总大小
+                                        int totalSize = buffers.stream()
+                                                .mapToInt(DataBuffer::readableByteCount)
+                                                .sum();
+
+                                        // 合并所有字节
+                                        byte[] allBytes = new byte[totalSize];
+                                        int position = 0;
+                                        for (DataBuffer buffer : buffers) {
+                                            int size = buffer.readableByteCount();
+                                            buffer.read(allBytes, position, size);
+                                            position += size;
+                                            DataBufferUtils.release(buffer);
+                                        }
+
+                                        // 打印请求体（限制大小）
+                                        String bodyText = new String(allBytes, StandardCharsets.UTF_8);
+                                        if (bodyText.length() > MAX_LOG_SIZE) {
+                                            System.out.println("[REQ-BODY] " + bodyText.substring(0, MAX_LOG_SIZE)
+                                                    + "... (truncated, total: " + bodyText.length() + " chars)");
+                                        } else {
+                                            System.out.println("[REQ-BODY] " + bodyText);
+                                        }
+
+                                        // 重建 DataBuffer
+                                        DataBuffer newBuffer = bufferFactory().wrap(allBytes);
+                                        return super.writeWith(Mono.just(newBuffer));
+                                    });
+                        }
+
+                        @Override
+                        public Mono<Void> setComplete() {
+                            System.out.println("[REQ-BODY] <empty>");
+                            return super.setComplete();
+                        }
+                    };
+                    return requestCallback.apply(wrappedRequest);
+                });
+            }
+        };
+    }
+
+    static ExchangeFilterFunction logRequest() {
+        return ExchangeFilterFunction.ofRequestProcessor(req -> {
+            System.out.println("[REQ] " + req.method() + " " + req.url());
+            req.headers().forEach((name, values) ->
+                    System.out.println("[REQ-header] " + name + ": " + String.join(",", values)));
+            // 提示：这里不能通用地安全读取请求体，因为 BodyInserter 可能是流/对象编码。
+            // 如需在应用层打印请求体，最好在发起请求处自己打印（比如 bodyValue(payload) 前打印 payload），
+            // 或使用 wiretap 捕获底层字节。
+            return Mono.just(req);
+        });
+    }
+
+
+    static ExchangeFilterFunction logResponse() {
+        return ExchangeFilterFunction.ofResponseProcessor(resp -> {
+            System.out.println("[RESP] status=" + resp.statusCode());
+            resp.headers().asHttpHeaders()
+                    .forEach((k, v) -> System.out.println("[RESP] " + k + ": " + String.join(",", v)));
+
+            Flux<DataBuffer> replayableBody = resp.body(BodyExtractors.toDataBuffers())
+                    .map(db -> {
+                        byte[] bytes = new byte[db.readableByteCount()];
+                        db.read(bytes);
+                        DataBufferUtils.release(db);
+                        String text = new String(bytes, StandardCharsets.UTF_8);
+                        System.out.println("[RESP-BODY] " + text);
+                        return BUFFER_FACTORY.wrap(bytes);
+                    });
+
+            // 保留原始响应的状态、头、cookies、编解码策略
+            ClientResponse rebuilt = ClientResponse.from(resp)
+                    .body(replayableBody)
+                    .build();
+
+            return Mono.just(rebuilt);
+        });
+    }
+
+    public static WebClient.Builder build() {
+        // 启用 wiretap：会打印底层 HTTP 报文（包含 body）
+        HttpClient httpClient = HttpClient.create()
+                .wiretap("reactor.netty.http.client", LogLevel.DEBUG, AdvancedByteBufFormat.TEXTUAL);
+
+        return WebClient.builder()
+                .baseUrl("http://localhost:8080")
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .filter(logRequest())
+                .filter(logResponse())
+                ;
+    }
+
+    public static void main(String[] args) {
+        var transport = new WebFluxSseClientTransport(build());
+        SampleClient sampleClient = new SampleClient(transport);
+        sampleClient.run();
+        System.out.println("WebClient with request/response logging created successfully!");
+    }
+
+
+}
