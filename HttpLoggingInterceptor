@@ -1,0 +1,30 @@
+package com.xiao.mcpclient.config;
+
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+public class HttpLoggingInterceptor implements ClientHttpRequestInterceptor {
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
+        // 打印请求信息
+        System.out.println("=== HTTP Request ===");
+        System.out.println("URL: " + request.getURI());
+        System.out.println("Method: " + request.getMethod());
+        System.out.println("Headers: " + request.getHeaders());
+        System.out.println("Body: " + new String(body, StandardCharsets.UTF_8));
+
+        // 执行请求并获取响应
+        ClientHttpResponse response = execution.execute(request, body);
+
+        // 打印响应信息
+        System.out.println("\n=== HTTP Response ===");
+        System.out.println("Status: " + response.getStatusCode());
+        System.out.println("Headers: " + response.getHeaders());
+        // 注意：响应体需要读取后再包装（避免流关闭）
+        return new LoggingClientHttpResponse(response);
+    }
+}
