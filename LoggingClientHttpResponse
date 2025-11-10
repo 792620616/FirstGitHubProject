@@ -1,0 +1,49 @@
+package com.xiao.mcpclient.config;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.StreamUtils;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
+public class LoggingClientHttpResponse implements ClientHttpResponse {
+    private final ClientHttpResponse response;
+    private byte[] body;
+
+    public LoggingClientHttpResponse(ClientHttpResponse response) throws IOException {
+        this.response = response;
+        this.body = StreamUtils.copyToByteArray(response.getBody()); // 缓存响应体
+        System.out.println("Body: " + new String(body, StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public HttpStatusCode getStatusCode() throws IOException {
+        return response.getStatusCode();
+    }
+
+    @Override
+    public String getStatusText() throws IOException {
+        return response.getStatusText();
+    }
+
+    @Override
+    public void close() {
+        response.close();
+    }
+
+    @Override
+    public InputStream getBody() throws IOException {
+        return new ByteArrayInputStream(body);
+    }
+
+    @Override
+    public HttpHeaders getHeaders() {
+        return response.getHeaders();
+    }
+
+    // 实现其他必要方法（直接委托给原始 response）
+
+}
