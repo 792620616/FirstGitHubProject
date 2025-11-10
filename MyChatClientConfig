@@ -1,0 +1,62 @@
+package com.xiao.mcpclient.config;
+
+
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
+
+import java.util.HashMap;
+import java.util.UUID;
+
+@Configuration
+public class MyChatClientConfig {
+
+    @Bean("myChatClient")
+    public ChatClient myChatClient(){
+        RestClient.Builder restClientBuilder = RestClient.builder()
+                .requestInterceptor((request, body, execution) -> {
+                    // 打印请求信息
+                    System.out.println("=== 请求 ===");
+                    System.out.println("URL: " + request.getURI());
+                    System.out.println("方法: " + request.getMethod());
+                    System.out.println("Headers: " + request.getHeaders());
+                    System.out.println("Body: " + new String(body, java.nio.charset.StandardCharsets.UTF_8));
+                    // 执行请求并打印响应
+                    ClientHttpResponse response = execution.execute(request, body);
+                    System.out.println("=== 返回响应 ===");
+                    System.out.println("状态: " + response.getStatusCode());
+                    System.out.println("Headers: " + response.getHeaders());
+                    return response;
+                });
+
+
+
+
+        String apiKey = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJyNmlXOGtqR3BhRG1oNG1mb0NlZm5LM2JweXVZb0tINCJ9.Dg--NjQlmu6KNyRsZimzfU-ryc7ok6BLUit4TZpx5wc";
+        HashMap header = new HashMap();
+        header.put("model", "bailian-qwen-turbo");
+        header.put("X-CHJ-GWToken", apiKey);
+        header.put("BCS-APIHub-RequestId", UUID.randomUUID().toString());
+
+        OpenAiApi aiClient = OpenAiApi.builder()
+                .baseUrl("http://api-hub.inner.chj.cloud/llm-gateway")
+                .apiKey(apiKey)
+                .headers(MultiValueMap.fromSingleValue(header))
+                .restClientBuilder(restClientBuilder)
+                .build();
+
+        OpenAiChatModel aiModel = OpenAiChatModel.builder()
+                .openAiApi(aiClient)
+                .defaultOptions(OpenAiChatOptions.builder().model("bailian-qwen-turbo").temperature(0.5).build())
+                .build();
+        ChatClient chatClient = ChatClient.create(aiModel);
+        return chatClient;
+
+    }
+}
